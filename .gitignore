@@ -1,32 +1,178 @@
-# Prerequisites
-*.d
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-# Precompiled Headers
-*.gch
-*.pch
+boolean dinoYerde = true;
+int buttonPin = 8;
+int buzzerPin = 9;
+int buttonState = 0;
+int enYuksekSkor = 0;
+boolean oyunDurumu = false;
+int aralik = 0;
+int aralikIki = 0;
+int skor = 0;
+int oyunHizi = 250; // Oyun hızı için başlangıç değeri (ms cinsinden)
+int maxi = 30; // Oyun hızı max değer
+byte dino[8]
+{
+  B00000,
+  B00111,
+  B00101,
+  B10111,
+  B11100,
+  B11111,
+  B01101,
+  B01100,
+};
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+byte agac[8]
+{
+  B00011,
+  B11011,
+  B11011,
+  B11011,
+  B11011,
+  B11111,
+  B01110,
+  B01110
+};
 
-# Fortran module files
-*.mod
-*.smod
+void setup() {
+  lcd.init();
+  lcd.backlight();
+  lcd.createChar(7, dino);
+  lcd.createChar(6, agac);
+  lcd.setCursor(0, 1);
+  lcd.write(7);
+  pinMode(buttonPin, INPUT);
+  pinMode(buzzerPin, OUTPUT);
+}
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
+void loop() {
+  lcd.clear();
 
-# Executables
-*.exe
-*.out
-*.app
+  if (!oyunDurumu) {
+    lcd.setCursor(0, 0);
+    lcd.print("Baslamak icin");
+    lcd.setCursor(0, 1);
+    lcd.print("Tusa basin");
+    if (digitalRead(buttonPin) == HIGH) {
+      oyunDurumu = true;
+    }
+  }
+
+  if (oyunDurumu) {
+    startOyun();
+  }
+}
+
+void startOyun() {
+  lcd.clear();
+
+  aralik = random(4, 9);
+  aralikIki = random(4, 9);
+
+  for (int i = 16; i >= -(aralik + aralikIki); i--) {
+    lcd.setCursor(13, 0);
+    lcd.print(skor);
+
+    int durum = digitalRead(buttonPin);
+
+    if (durum == HIGH) {
+      buttonState = 1;
+      tone(buzzerPin, 700, 100);
+    }
+    else if (durum == LOW) {
+      buttonState = 0;
+    }
+
+    if (buttonState == 1) {
+      lcd.setCursor(1, 0);
+      lcd.write(7);
+      lcd.setCursor(1, 1);
+      lcd.print(" ");
+      dinoYerde = false;
+    }
+    else {
+      lcd.setCursor(1, 1);
+      lcd.write(7);
+      lcd.setCursor(1, 0);
+      lcd.print(" ");
+      dinoYerde = true;
+    }
+
+    lcd.setCursor(i, 0);
+    lcd.write(6);
+    lcd.setCursor(i + 1, 0);
+    lcd.print(" ");
+
+    lcd.setCursor(i + aralik, 1);
+    lcd.write(6);
+    lcd.setCursor(i + aralik + 1, 1);
+    lcd.print(" ");
+
+    
+    lcd.setCursor(i + aralik + aralikIki, 1);
+    lcd.write(6);
+    lcd.setCursor(i + aralik + aralikIki + 1, 1);
+    lcd.print(" ");
+
+    if ((i + aralik + aralikIki) == -1) {
+      i = 12;
+    }
+
+    if (i == 0 && (dinoYerde == false)) {
+      lcd.clear();
+      lcd.print("OYUN BITTI");
+      if (skor > enYuksekSkor) {
+        enYuksekSkor = skor;
+      }
+      lcd.setCursor(0, 1);
+      lcd.print("EN YUKSEK : ");
+      lcd.print(enYuksekSkor);
+      oyunDurumu = false;
+      delay(5000);
+      skor = 0;
+      oyunHizi = 150; // Oyun hızını başa döndür
+      break;
+    }
+    else if (i + aralik == 1 && (dinoYerde == true)) {
+      lcd.clear();
+      lcd.print("OYUN BITTI!");
+      if (skor > enYuksekSkor) {
+        enYuksekSkor = skor;
+      }
+      lcd.setCursor(0, 1);
+      lcd.print("EN YUKSEK : ");
+      lcd.print(enYuksekSkor);
+      oyunDurumu = false;
+      delay(5000);
+      skor = 0;
+      oyunHizi = 150; // Oyun hızını başa döndür
+      break;
+    }
+    else if (i + aralik + aralikIki == 1 && (dinoYerde == true)) {
+      lcd.clear();
+      lcd.print("OYUN BITTI");
+      if (skor > enYuksekSkor) {
+        enYuksekSkor = skor;
+      }
+      lcd.setCursor(0, 1);
+      lcd.print("EN YUKSEK : ");
+      lcd.print(enYuksekSkor);
+      oyunDurumu = false;
+      delay(5000);
+      skor = 0;
+      oyunHizi = 150; // Oyun hızını başa döndür
+      break;
+    }
+
+    skor++;
+    delay(oyunHizi); // Oyun hızını uygula
+    oyunHizi -= 1; // Oyun hızını artır
+    if (oyunHizi < maxi) {
+      oyunHizi = maxi; // Minimum hızı sınırla
+    }
+  }
+}
